@@ -1,0 +1,218 @@
+<DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Cube Timer</title>
+        <link rel="stylesheet" href="style.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.16/p5.js"></script>
+        <style media="screen">
+            html, body {
+                height: 100%;
+            }
+            body {
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript">
+            // all global variables
+            var seconds;
+            var time;
+            var running;
+            var watchOn;
+            var logTime;
+            var best;
+            var worst;
+            var average;
+            var r,g,b;
+            var moves;
+            var doThisShuffle;
+
+            // sets up the initial values of variables
+            function setup(){
+              r = 64;
+              g = 70;
+              b = 81;
+              doThisShuffle = "";
+              moves = [
+                ["R", "R'", "R2", "L", "L'", "L2", "M", "M'", "M2"], // up/down
+                ["U", "U'", "U2", "D", "D'", "D2", "m", "m'", "m2"], // left/right
+                ["F", "F'", "F2", "B", "B'", "B2", "S", "S'", "S2"] // CW/ACW
+              ];
+              average = 0;
+              logTime = [0];
+              running = false;
+              createCanvas(innerWidth, innerHeight);
+              seconds = 0;
+              time = "";
+              doThisShuffle = doShuffle();
+            }
+            // forever loop that runs every frame
+            function draw(){
+              fill(0,255,255);
+              textSize(128);
+              background(r, g, b);
+              text(getTime(), width/2 - 150, height/2);
+              textSize(32);
+              displayLog();
+              text("Shuffle: " + doThisShuffle + " 🙄", 25, height - 25);
+              if (getAverage(logTime) < 60){
+                text("Avg: " + getAverage(logTime) + "s", width - 220, 40);
+              }
+              else{
+                text("Avg: " + getMinutes() + ":" + roundRight(getAverage(logTime) - (getMinutes()*60), 2) + "s", width - 220, 40);
+              }
+              text("SD: " + roundRight(getStandardDeviation(logTime), 2) + "s", width - 220, 80);
+              text("Best: " + roundRight(getBest(), 2) + "s" + " 😀", width - 240, height - 60);
+              text("Worst: " + roundRight(getWorst(), 2) + "s" + " 🤨", width - 240, height - 25);
+            }
+            // checks whether a key has been pressed and performs an action according to the key pressed
+            function keyPressed(){
+              if (keyCode == 8){
+                logTime.pop();
+                getAverage();
+              }
+              if (keyCode == 32 && !running){
+                r = 255;
+                g = 55;
+                b = 0;
+              }
+            }
+            // checks wjether a key has been releassed and performs an action accordingly
+            function keyReleased(){
+              if (keyCode == 32){
+                if(!running){
+                  r = 64; //(64,71,81) rgb color code of chrome theme
+                  g = 70;
+                  b = 81;
+                  seconds = 0;
+                  startWatch();
+                }
+                else{
+                  stopRunning();
+                  doThisShuffle = doShuffle();
+                  append(logTime, roundRight(seconds, 2));
+                }
+              }
+            }
+            // returns a new shuffle combination
+            function doShuffle() {
+              var c;
+              var r;
+              var preC;
+              var shuffled = "";
+              for(var i = 0; i < 20; i++){
+                c = Math.floor(Math.random() * 3);
+                r = Math.floor(Math.random() * 9);
+                while(c == preC){
+                  c = Math.floor(Math.random() * 3);
+                }
+                preC = c;
+                shuffled += moves[c][r];
+                if (i != 19) shuffled += "-";
+              }
+              return shuffled;
+            }
+            // starts the timer
+            function startWatch(){
+              watchOn = setInterval(addTime, 10);
+              running = true;
+            }
+            // sets the timer to 0 seconds
+            function resetWatch(){
+              seconds = 0;
+            }
+            // adds .01 to the seconds every 10 milliseconds
+            function addTime(){
+              seconds+=0.01;
+            }
+            // stops adding the .01 to the time
+            function stopRunning(){
+              clearInterval(watchOn);
+              running = false;
+            }
+            // displays the previous times in the latest order
+            function displayLog(){
+              var j = 0;
+              var tempTen = 0;
+              if(logTime.length > 9){
+                tempTen = logTime.length - 10;
+              }
+              for(var i = logTime.length - 1; i > tempTen; i--){
+                if(logTime[i] > 60){
+
+                }
+                text(logTime[i], 25, 40 + j*30);
+                j++;
+              }
+            }
+            // returns average of the numbers in the provided array
+            function getAverage(list){
+              for(var i = list.length - 1; i > 0; i--){
+                average += list[i];
+              }
+              average /= list.length;
+              if(list.length == 1){
+                average = 0;
+              }
+              return roundRight(average, 2);
+            }
+            // returns standard deviation of the values in the provided array
+            function getStandardDeviation(list){
+              var stdTotal = 0;
+              for(var i = list.length - 1; i > 0; i--){
+                stdTotal += Math.pow(list[i] - getAverage(logTime), 2)
+              }
+              stdTotal /= list.length;
+              var std = Math.sqrt(stdTotal);
+              return std;
+            }
+            // returns given value to the required decimals
+            function roundRight(value, decimals){
+              return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
+            }
+            // returns the lowest time recorded
+            function getBest(){
+              var best = logTime[logTime.length - 1];
+              for(var i = logTime.length - 1; i > 0; i--){
+                if (best > logTime[i]) {
+                  best = logTime[i];
+                }
+              }
+              return best;
+            }
+            // returns the highest time recorded
+            function getWorst(){
+              var worst = logTime[logTime.length - 1];
+              for(var i = logTime.length - 1; i > 0; i--){
+                if (worst < logTime[i]) {
+                  worst = logTime[i];
+                }
+              }
+              return worst;
+            }
+            // returns the amount of minutes given seconds passed
+            function getMinutes() {
+              var minutes = floor(seconds/60);
+              return minutes;
+            }
+            // returns the time passed in minutes : seconds format
+            function getTime() {
+              if(getMinutes() < 1){
+                if(seconds - (getMinutes() * 60) < 10){
+                  return "0" + roundRight(seconds - (getMinutes() * 60), 2);
+                }
+                return roundRight(seconds - (getMinutes() * 60), 2);
+              }
+              if(seconds - (getMinutes() * 60) < 10){
+                return getMinutes() + ":" + "0" + roundRight(seconds - (getMinutes() * 60), 2);
+              }
+              return getMinutes() + ":" + roundRight(seconds - (getMinutes() * 60), 2);
+            }
+        </script>
+    </body>
+</html>
